@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte BDR — Luca</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+  
+  header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: white; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.3px; }
+  header span { font-size: 0.85rem; opacity: 0.7; margin-top: 4px; display: block; }
+  .badge { background: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 16px; font-size: 0.8rem; font-weight: 600; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  @media(max-width:900px){ .cards { grid-template-columns: repeat(2,1fr); } }
+  .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #e2e8f0; }
+  .card.green { border-left-color: #10b981; }
+  .card.yellow { border-left-color: #f59e0b; }
+  .card.blue { border-left-color: #3b82f6; }
+  .card.purple { border-left-color: #8b5cf6; }
+  .card-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 6px; }
+  .card-value { font-size: 1.5rem; font-weight: 700; color: #1a1a2e; }
+  .card-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: white; border-radius: 10px; padding: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); width: fit-content; }
+  .tab { padding: 8px 20px; border-radius: 7px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #64748b; border: none; background: transparent; transition: all 0.2s; }
+  .tab.active { background: #1a1a2e; color: white; }
+  .tab:hover:not(.active) { background: #f1f5f9; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .table-wrap { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #1a1a2e; color: white; padding: 12px 16px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  tr:hover td { background: #eff6ff; }
+  td { padding: 12px 16px; font-size: 0.84rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+
+  .rank-num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-size: 0.78rem; font-weight: 700; margin-right: 4px; }
+  .rank-1 { background: #fef08a; color: #713f12; }
+  .rank-2 { background: #e2e8f0; color: #334155; }
+  .rank-3 { background: #fed7aa; color: #7c2d12; }
+  .rank-other { background: #f1f5f9; color: #64748b; }
+
+  .bar-track { background: #e2e8f0; border-radius: 20px; height: 14px; width: 100%; position: relative; overflow: hidden; min-width: 160px; }
+  .bar-closed { position: absolute; left: 0; top: 0; height: 100%; background: #10b981; border-radius: 20px 0 0 20px; transition: width 0.4s; }
+  .bar-carta { position: absolute; top: 0; height: 100%; background: #f59e0b; transition: width 0.4s; }
+  .bar-label { font-size: 0.72rem; color: #64748b; margin-top: 3px; }
+  .pct-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; }
+  .pct-green { background: #dcfce7; color: #15803d; }
+  .pct-yellow { background: #fef9c3; color: #92400e; }
+  .pct-red { background: #fee2e2; color: #991b1b; }
+  .semaforo { font-size: 1.2rem; }
+
+  .charts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  @media(max-width:900px){ .charts-grid { grid-template-columns: repeat(2,1fr); } }
+  @media(max-width:600px){ .charts-grid { grid-template-columns: 1fr; } }
+  .chart-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .chart-title { font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 8px; text-align: center; text-transform: uppercase; letter-spacing: 0.3px; }
+  .chart-sub { font-size: 0.7rem; color: #94a3b8; text-align: center; margin-top: 4px; }
+  .chart-big { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
+
+  .detail-vendor { background: white; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+  .detail-header { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: background 0.2s; }
+  .detail-header:hover { background: #f8fafc; }
+  .detail-header-left { display: flex; align-items: center; gap: 12px; }
+  .detail-name { font-weight: 700; font-size: 0.95rem; }
+  .detail-stats { font-size: 0.78rem; color: #64748b; }
+  .detail-arrow { font-size: 0.7rem; color: #94a3b8; transition: transform 0.2s; }
+  .detail-arrow.open { transform: rotate(180deg); }
+  .detail-body { display: none; border-top: 1px solid #f1f5f9; }
+  .detail-body.open { display: block; }
+  .deal-row { display: grid; grid-template-columns: 2fr 3fr 1fr 1fr 1fr; gap: 8px; padding: 8px 20px; font-size: 0.78rem; border-bottom: 1px solid #f8fafc; align-items: center; }
+  .deal-row:last-child { border-bottom: none; }
+  .deal-row.header { background: #f8fafc; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.3px; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 0.68rem; font-weight: 600; }
+  .tag-closed { background: #dcfce7; color: #15803d; }
+  .tag-carta { background: #fef9c3; color: #92400e; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #475569; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📊 Reporte BDR — Luca</h1>
+    <span>Avance vs Meta · Actualizado 17 Abril 2026</span>
+  </div>
+  <div class="badge">9 Vendedores · 🟡 55.8% del objetivo</div>
+</header>
+
+<div class="container">
+
+  <div class="cards">
+    <div class="card green">
+      <div class="card-label">Contratos Firmados</div>
+      <div class="card-value">€436,557</div>
+      <div class="card-sub">Hard close confirmado</div>
+    </div>
+    <div class="card yellow">
+      <div class="card-label">Cartas + Contratos</div>
+      <div class="card-value">€2,315,145</div>
+      <div class="card-sub">Total acumulado</div>
+    </div>
+    <div class="card blue">
+      <div class="card-label">Meta Total</div>
+      <div class="card-value">€4,150,000</div>
+      <div class="card-sub">Suma de cuotas</div>
+    </div>
+    <div class="card purple">
+      <div class="card-label">Estado General</div>
+      <div class="card-value">🟡 55.8%</div>
+      <div class="card-sub">Combinado vs Meta</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('progreso', this)">📋 Ranking</button>
+    <button class="tab" onclick="showTab('graficas', this)">📈 Gráficas</button>
+    <button class="tab" onclick="showTab('detalle', this)">🔍 Detalle por Vendedor</button>
+  </div>
+
+  <!-- TAB 1: RANKING -->
+  <div id="tab-progreso" class="tab-content active">
+    <div style="margin-bottom:12px;" class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Contratos Firmados</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Cartas Intención Firmadas</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e2e8f0"></div> Restante</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Vendedor</th>
+            <th>Contratos Firmados</th>
+            <th>Cartas Intención Firmadas</th>
+            <th>Total Acumulado</th>
+            <th>Meta</th>
+            <th>Avance</th>
+            <th style="min-width:200px">Progreso</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr>
+            <td style="text-align:center;font-size:1.2rem">🥇</td>
+            <td><strong>Marcos Gutiérrez</strong></td>
+            <td>€19,791</td>
+            <td>€495,654</td>
+            <td><strong>€515,445</strong></td>
+            <td>€550,000</td>
+            <td><span class="pct-badge pct-green">🟢 93.7%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:3.6%"></div>
+                <div class="bar-carta" style="left:3.6%; width:90.1%"></div>
+              </div>
+              <div class="bar-label">€515,445 / €550,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem">🥈</td>
+            <td><strong>Luis Dominguez</strong></td>
+            <td>€228,760</td>
+            <td>€214,477</td>
+            <td><strong>€443,237</strong></td>
+            <td>€550,000</td>
+            <td><span class="pct-badge pct-green">🟢 80.6%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:41.6%"></div>
+                <div class="bar-carta" style="left:41.6%; width:39.0%"></div>
+              </div>
+              <div class="bar-label">€443,237 / €550,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem">🥉</td>
+            <td><strong>Fernando Carrillo</strong></td>
+            <td>€58,363</td>
+            <td>€299,637</td>
+            <td><strong>€358,000</strong></td>
+            <td>€550,000</td>
+            <td><span class="pct-badge pct-yellow">🟡 65.1%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:10.6%"></div>
+                <div class="bar-carta" style="left:10.6%; width:54.5%"></div>
+              </div>
+              <div class="bar-label">€358,000 / €550,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem"><span class="rank-num rank-other">4</span></td>
+            <td><strong>Luis Gómez</strong></td>
+            <td>€90,881</td>
+            <td>€165,581</td>
+            <td><strong>€256,463</strong></td>
+            <td>€350,000</td>
+            <td><span class="pct-badge pct-yellow">🟡 73.3%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:26.0%"></div>
+                <div class="bar-carta" style="left:26.0%; width:47.3%"></div>
+              </div>
+              <div class="bar-label">€256,463 / €350,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem"><span class="rank-num rank-other">5</span></td>
+            <td><strong>Omar Sanchez</strong></td>
+            <td>€15,256</td>
+            <td>€213,493</td>
+            <td><strong>€228,749</strong></td>
+            <td>€450,000</td>
+            <td><span class="pct-badge pct-yellow">🟡 50.8%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:3.4%"></div>
+                <div class="bar-carta" style="left:3.4%; width:47.4%"></div>
+              </div>
+              <div class="bar-label">€228,749 / €450,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem"><span class="rank-num rank-other">6</span></td>
+            <td><strong>Andres Reyes</strong></td>
+            <td>€23,507</td>
+            <td>€156,095</td>
+            <td><strong>€179,602</strong></td>
+            <td>€550,000</td>
+            <td><span class="pct-badge pct-red">🔴 32.7%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:4.3%"></div>
+                <div class="bar-carta" style="left:4.3%; width:28.4%"></div>
+              </div>
+              <div class="bar-label">€179,602 / €550,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem"><span class="rank-num rank-other">7</span></td>
+            <td><strong>Alfonso Reyes</strong></td>
+            <td>€0</td>
+            <td>€166,253</td>
+            <td><strong>€166,253</strong></td>
+            <td>€550,000</td>
+            <td><span class="pct-badge pct-red">🔴 30.2%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:0.0%"></div>
+                <div class="bar-carta" style="left:0.0%; width:30.2%"></div>
+              </div>
+              <div class="bar-label">€166,253 / €550,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem"><span class="rank-num rank-other">8</span></td>
+            <td><strong>Jorge Fuentes</strong></td>
+            <td>€0</td>
+            <td>€114,373</td>
+            <td><strong>€114,373</strong></td>
+            <td>€300,000</td>
+            <td><span class="pct-badge pct-red">🔴 38.1%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:0.0%"></div>
+                <div class="bar-carta" style="left:0.0%; width:38.1%"></div>
+              </div>
+              <div class="bar-label">€114,373 / €300,000</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align:center;font-size:1.2rem"><span class="rank-num rank-other">9</span></td>
+            <td><strong>Sergio Arenas</strong></td>
+            <td>€0</td>
+            <td>€53,023</td>
+            <td><strong>€53,023</strong></td>
+            <td>€300,000</td>
+            <td><span class="pct-badge pct-red">🔴 17.7%</span></td>
+            <td>
+              <div class="bar-track">
+                <div class="bar-closed" style="width:0.0%"></div>
+                <div class="bar-carta" style="left:0.0%; width:17.7%"></div>
+              </div>
+              <div class="bar-label">€53,023 / €300,000</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: GRÁFICAS -->
+  <div id="tab-graficas" class="tab-content">
+    <div class="chart-big">
+      <div class="chart-title">Avance Total por Vendedor vs Meta (orden ranking)</div>
+      <canvas id="barChart" height="90"></canvas>
+    </div>
+    <div class="charts-grid">
+
+      <div class="chart-card">
+        <div class="chart-title">Marcos Gutiérrez</div>
+        <canvas id="donut_Marcos_Gutierrez" height="160"></canvas>
+        <div class="chart-sub">🟢 93.7% · Meta €550,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Luis Dominguez</div>
+        <canvas id="donut_Luis_Dominguez" height="160"></canvas>
+        <div class="chart-sub">🟢 80.6% · Meta €550,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Fernando Carrillo</div>
+        <canvas id="donut_Fernando_Carrillo" height="160"></canvas>
+        <div class="chart-sub">🟡 65.1% · Meta €550,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Luis Gómez</div>
+        <canvas id="donut_Luis_Gomez" height="160"></canvas>
+        <div class="chart-sub">🟡 73.3% · Meta €350,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Omar Sanchez</div>
+        <canvas id="donut_Omar_Sanchez" height="160"></canvas>
+        <div class="chart-sub">🟡 50.8% · Meta €450,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Andres Reyes</div>
+        <canvas id="donut_Andres_Reyes" height="160"></canvas>
+        <div class="chart-sub">🔴 32.7% · Meta €550,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Alfonso Reyes</div>
+        <canvas id="donut_Alfonso_Reyes" height="160"></canvas>
+        <div class="chart-sub">🔴 30.2% · Meta €550,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Jorge Fuentes</div>
+        <canvas id="donut_Jorge_Fuentes" height="160"></canvas>
+        <div class="chart-sub">🔴 38.1% · Meta €300,000</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Sergio Arenas</div>
+        <canvas id="donut_Sergio_Arenas" height="160"></canvas>
+        <div class="chart-sub">🔴 17.7% · Meta €300,000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: DETALLE -->
+  <div id="tab-detalle" class="tab-content">
+
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Marcos_Gutierrez')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">🥇</span>
+          <span class="semaforo">🟢</span>
+          <div>
+            <div class="detail-name">Marcos Gutiérrez</div>
+            <div class="detail-stats">Firmados: €19,791 &nbsp;·&nbsp; Cartas: €495,654 &nbsp;·&nbsp; Total: €515,445 / €550,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-green">93.7%</span>
+          <span class="detail-arrow" id="arrow_Marcos_Gutierrez">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Marcos_Gutierrez">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="MARIA P. DE ALVARADO">MARIA P. DE ALVARADO</span>
+          <span title="IMPA Negocio">IMPA Negocio</span>
+          <span><strong>€27,088</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">26/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="NUEVA ESPAÑA">NUEVA ESPAÑA</span>
+          <span title="NUEVA ESPAÑA Negocio">NUEVA ESPAÑA Negocio</span>
+          <span><strong>€29,419</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">28/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="CALMECAC">CALMECAC</span>
+          <span title="CALMECAC Negocio">CALMECAC Negocio</span>
+          <span><strong>€27,628</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">31/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="LIBERTAD">LIBERTAD</span>
+          <span title="LIBERTAD Negocio">LIBERTAD Negocio</span>
+          <span><strong>€23,163</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">11/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="DEL VALLE DE TESISTAN">DEL VALLE DE TESISTAN</span>
+          <span title="DEL VALLE DE TESISTAN Negocio">DEL VALLE DE TESISTAN Negocio</span>
+          <span><strong>€24,837</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="WAIKARIPA">WAIKARIPA</span>
+          <span title="WAIKARIPA Negocio">WAIKARIPA Negocio</span>
+          <span><strong>€5,628</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">16/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Summit School (CENTRO DE EDUCATIVO SUSTENTABLE JACQUES COUSTEAU)">Summit School (CENTRO DE EDUCA…</span>
+          <span title="Summit School">Summit School</span>
+          <span><strong>€32,566</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">17/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="MAXIMILIANO MARIA KOLBE">MAXIMILIANO MARIA KOLBE</span>
+          <span title="MAXIMILIANO MARIA KOLBE Negocio">MAXIMILIANO MARIA KOLBE Negocio</span>
+          <span><strong>€26,256</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">11/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="COLEGIO JUANA DE ARCO (PRIMARIA Y SECUNDARIA)">COLEGIO JUANA DE ARCO (PRIMARI…</span>
+          <span title="COLEGIO JUANA DE ARCO (SECUNDARIA)Negocio">COLEGIO JUANA DE ARCO (SECUNDARIA)Negoci…</span>
+          <span><strong>€49,953</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="COLEGIO PRIMERO DE MAYO">COLEGIO PRIMERO DE MAYO</span>
+          <span title="PRIMERO DE MAYONegocio">PRIMERO DE MAYONegocio</span>
+          <span><strong>€54,698</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">28/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="JEAN PIAGET">JEAN PIAGET</span>
+          <span title="JEAN PIAGETNegocio">JEAN PIAGETNegocio</span>
+          <span><strong>€9,181</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="JUAN SEBASTIAN BACH">JUAN SEBASTIAN BACH</span>
+          <span title="JUAN SEBASTIAN BACH NEGOCIO">JUAN SEBASTIAN BACH NEGOCIO</span>
+          <span><strong>€13,423</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">17/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Europeo de América">Europeo de América</span>
+          <span title="Europeo de AméricaNegocio">Europeo de AméricaNegocio</span>
+          <span><strong>€6,395</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">02/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="JAIME TORRES BODET (ISPAC)">JAIME TORRES BODET (ISPAC)</span>
+          <span title="JAIME TORRES BODETNegocio">JAIME TORRES BODETNegocio</span>
+          <span><strong>€2,540</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">17/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="CERVANTES">CERVANTES</span>
+          <span title="CERVANTESNegocio">CERVANTESNegocio</span>
+          <span><strong>€26,047</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="NELSON MANDELA">NELSON MANDELA</span>
+          <span title="Nelson Mandela">Nelson Mandela</span>
+          <span><strong>€13,395</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">23/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="BOSQUES DEL SOL">BOSQUES DEL SOL</span>
+          <span title="BOSQUES DEL SOLNegocio">BOSQUES DEL SOLNegocio</span>
+          <span><strong>€27,907</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">06/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="AUGUS FROEBEL">AUGUS FROEBEL</span>
+          <span title="AUGUS FROEBELNegocio">AUGUS FROEBELNegocio</span>
+          <span><strong>€33,860</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">05/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="CENTRO ESCOLAR NUEVA INGLATERRA">CENTRO ESCOLAR NUEVA INGLATERR…</span>
+          <span title="CENTRO ESCOLAR NUEVA INGLATERRANegocio">CENTRO ESCOLAR NUEVA INGLATERRANegocio</span>
+          <span><strong>€7,442</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">13/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="IYARI SCHOOL">IYARI SCHOOL</span>
+          <span title="IYARINegocio">IYARINegocio</span>
+          <span><strong>€12,279</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="HISPANO AMERICANO">HISPANO AMERICANO</span>
+          <span title="HISPANO AMERICANONegocio">HISPANO AMERICANONegocio</span>
+          <span><strong>€16,744</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">23/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="OCEANO">OCEANO</span>
+          <span title="OCEANONegocio">OCEANONegocio</span>
+          <span><strong>€24,647</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="SOR JUANA INES DE LA CRUZ">SOR JUANA INES DE LA CRUZ</span>
+          <span title="SOR JUANA INES DE LA CRUZNegocio">SOR JUANA INES DE LA CRUZNegocio</span>
+          <span><strong>€20,349</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/10/2025</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Luis_Dominguez')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">🥈</span>
+          <span class="semaforo">🟢</span>
+          <div>
+            <div class="detail-name">Luis Dominguez</div>
+            <div class="detail-stats">Firmados: €228,760 &nbsp;·&nbsp; Cartas: €214,477 &nbsp;·&nbsp; Total: €443,237 / €550,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-green">80.6%</span>
+          <span class="detail-arrow" id="arrow_Luis_Dominguez">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Luis_Dominguez">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="PATRIA DE LA LAGUNA">PATRIA DE LA LAGUNA</span>
+          <span title="Instituto Patria de la Laguna Torreón">Instituto Patria de la Laguna Torreón</span>
+          <span><strong>€62,195</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">20/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Pillicao Jiutepec">Colegio Pillicao Jiutepec</span>
+          <span title="COLEGIO PILLICAO JIUTEPEC">COLEGIO PILLICAO JIUTEPEC</span>
+          <span><strong>€3,907</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">28/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Latinoamericana Veracruz">Colegio Latinoamericana Veracr…</span>
+          <span title="COLEGIO LATINOAMERICANA VERACRUZ">COLEGIO LATINOAMERICANA VERACRUZ</span>
+          <span><strong>€15,070</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">20/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="CEA Centro Escolar Albatros Tuxpan">CEA Centro Escolar Albatros Tu…</span>
+          <span title="CEA CENTRO ESCOLAR ALBATROS TUXPAN">CEA CENTRO ESCOLAR ALBATROS TUXPAN</span>
+          <span><strong>€14,233</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">21/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="TERRANOVA">TERRANOVA</span>
+          <span title="Instituto Terra Nova Veracruz">Instituto Terra Nova Veracruz</span>
+          <span><strong>€7,809</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">23/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="YOLIZTLI DE CHOLULA">YOLIZTLI DE CHOLULA</span>
+          <span title="Escuela Yoliztli de Cholula Puebla">Escuela Yoliztli de Cholula Puebla</span>
+          <span><strong>€19,665</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">25/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Escuela Morelos Xalapa">Escuela Morelos Xalapa</span>
+          <span title="ESCUELA MORELOS XALAPA">ESCUELA MORELOS XALAPA</span>
+          <span><strong>€50,279</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Instituto Anglo de Orizaba">Instituto Anglo de Orizaba</span>
+          <span title="INSTITUTO ANGLO DE ORIZABA">INSTITUTO ANGLO DE ORIZABA</span>
+          <span><strong>€24,186</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Instituto Mariano Benavente Veracruz">Instituto Mariano Benavente Ve…</span>
+          <span title="Instituto Mariano Benavente Veracruz">Instituto Mariano Benavente Veracruz</span>
+          <span><strong>€34,047</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">19/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Bilingüe de la Veracruz">Colegio Bilingüe de la Veracru…</span>
+          <span title="COLEGIO BILINGÜE DE LA VERACRUZ">COLEGIO BILINGÜE DE LA VERACRUZ</span>
+          <span><strong>€28,370</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Liceo Sol de Oriente Puebla">Colegio Liceo Sol de Oriente P…</span>
+          <span title="COLEGIO LICEO SOL DE ORIENTE PUEBLA">COLEGIO LICEO SOL DE ORIENTE PUEBLA</span>
+          <span><strong>€57,116</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Unión Naciones Veracruz">Colegio Unión Naciones Veracru…</span>
+          <span title="COLEGIO DE LAS NACIONES VERACRUZ">COLEGIO DE LAS NACIONES VERACRUZ</span>
+          <span><strong>€1,419</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">03/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="CSJ Curie Stark Joule Enseñanza Integral Puebla">CSJ Curie Stark Joule Enseñanz…</span>
+          <span title="CSJ CURIE STARK JOULE ENSEÑANZA INTEGRAL PUEBLA">CSJ CURIE STARK JOULE ENSEÑANZA INTEGRAL…</span>
+          <span><strong>€19,102</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Gregg School San Andrés Tuxtla">Gregg School San Andrés Tuxtla</span>
+          <span title="GREGG SCHOOL SAN ANDRÉS TUXTLA">GREGG SCHOOL SAN ANDRÉS TUXTLA</span>
+          <span><strong>€32,691</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">21/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Curie Stark Joule">Curie Stark Joule</span>
+          <span title="Curie Stark Joule negocio">Curie Stark Joule negocio</span>
+          <span><strong>€19,102</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Patria Cosamaloapan">Colegio Patria Cosamaloapan</span>
+          <span title="COLEGIO PATRIA COSAMALOAPAN">COLEGIO PATRIA COSAMALOAPAN</span>
+          <span><strong>€29,442</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Bruner ORIZABA">Colegio Bruner ORIZABA</span>
+          <span title="COLEGIO BRUNER ORIZABA">COLEGIO BRUNER ORIZABA</span>
+          <span><strong>€9,767</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="San Pedro School Puebla">San Pedro School Puebla</span>
+          <span title="SAN PEDRO SCHOOL PUEBLA">SAN PEDRO SCHOOL PUEBLA</span>
+          <span><strong>€14,837</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">25/03/2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Fernando_Carrillo')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">🥉</span>
+          <span class="semaforo">🟡</span>
+          <div>
+            <div class="detail-name">Fernando Carrillo</div>
+            <div class="detail-stats">Firmados: €58,363 &nbsp;·&nbsp; Cartas: €299,637 &nbsp;·&nbsp; Total: €358,000 / €550,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-yellow">65.1%</span>
+          <span class="detail-arrow" id="arrow_Fernando_Carrillo">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Fernando_Carrillo">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="PERSA">PERSA</span>
+          <span title="PERSA Negocio">PERSA Negocio</span>
+          <span><strong>€35,209</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="ATENEO">ATENEO</span>
+          <span title="ATENEO Negocio">ATENEO Negocio</span>
+          <span><strong>€21,093</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">14/04/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="CENTRO DE ESTUDIOS JOSE VASCONCELOS">CENTRO DE ESTUDIOS JOSE VASCON…</span>
+          <span title="CENTRO DE ESTUDIOS JOSE VASCONCELOS Negocio">CENTRO DE ESTUDIOS JOSE VASCONCELOS Nego…</span>
+          <span><strong>€12,093</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="CENTRO ESCOLAR LANDAU">CENTRO ESCOLAR LANDAU</span>
+          <span title="CENTRO ESCOLAR LANDAU Negocio">CENTRO ESCOLAR LANDAU Negocio</span>
+          <span><strong>€33,965</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">22/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="COLEGIO UNIVERSIDAD SAN ANGEL">COLEGIO UNIVERSIDAD SAN ANGEL</span>
+          <span title="COLEGIO UNIVERSIDAD SAN ANGELnegocio">COLEGIO UNIVERSIDAD SAN ANGELnegocio</span>
+          <span><strong>€16,019</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="CRISTOBAL COLON">CRISTOBAL COLON</span>
+          <span title="Cuerámaro - USAS">Cuerámaro - USAS</span>
+          <span><strong>€15,209</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="LAS AMERICAS">LAS AMERICAS</span>
+          <span title="LAS AMERICAS ECATEPECnegocio">LAS AMERICAS ECATEPECnegocio</span>
+          <span><strong>€14,070</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">20/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="YOLINSTLI">YOLINSTLI</span>
+          <span title="Colegio Yolinstlin Puebla">Colegio Yolinstlin Puebla</span>
+          <span><strong>€15,042</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">14/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="VASCO DE QUIROGA">VASCO DE QUIROGA</span>
+          <span title="VASCO DE QUIROGANegocio">VASCO DE QUIROGANegocio</span>
+          <span><strong>€33,488</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">22/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="EMMA GODOY">EMMA GODOY</span>
+          <span title="EMMA GODOYNegocio">EMMA GODOYNegocio</span>
+          <span><strong>€29,116</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="JULES PETIET">JULES PETIET</span>
+          <span title="JULES PETIETNegocio">JULES PETIETNegocio</span>
+          <span><strong>€35,302</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">25/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="KAROL WOJTYLA">KAROL WOJTYLA</span>
+          <span title="KAROL WOJTYLANegocio">KAROL WOJTYLANegocio</span>
+          <span><strong>€25,584</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="FORMACION CREACTIVA">FORMACION CREACTIVA</span>
+          <span title="FORMACION CREACTIVANegocio">FORMACION CREACTIVANegocio</span>
+          <span><strong>€14,070</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="MIGUEL HIDALGO">MIGUEL HIDALGO</span>
+          <span title="MIGUEL HIDALGO LIBRES Negocio">MIGUEL HIDALGO LIBRES Negocio</span>
+          <span><strong>€36,419</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">14/04/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="GUADALUPE">GUADALUPE</span>
+          <span title="GUADALUPENegocio">GUADALUPENegocio</span>
+          <span><strong>€21,321</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">14/04/2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Luis_Gomez')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">#4</span>
+          <span class="semaforo">🟡</span>
+          <div>
+            <div class="detail-name">Luis Gómez</div>
+            <div class="detail-stats">Firmados: €90,881 &nbsp;·&nbsp; Cartas: €165,581 &nbsp;·&nbsp; Total: €256,463 / €350,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-yellow">73.3%</span>
+          <span class="detail-arrow" id="arrow_Luis_Gomez">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Luis_Gomez">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="NUEVO CONTINENTE">NUEVO CONTINENTE</span>
+          <span title="NC SCHOOL Negocio">NC SCHOOL Negocio</span>
+          <span><strong>€47,470</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">03/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="CENTRO PEDAGOGICO DEL NOROESTE">CENTRO PEDAGOGICO DEL NOROESTE</span>
+          <span title="CENTRO PEDAGOGICO DEL NOROESTE Negocio">CENTRO PEDAGOGICO DEL NOROESTE Negocio</span>
+          <span><strong>€25,116</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Notre Dame">Colegio Notre Dame</span>
+          <span title="Colegio Notre Dame Negocio">Colegio Notre Dame Negocio</span>
+          <span><strong>€4,860</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="COLEGIO DEL VALLE DE TULANCINGO">COLEGIO DEL VALLE DE TULANCING…</span>
+          <span title="Colegio del Valle de TulancingoNegocio">Colegio del Valle de TulancingoNegocio</span>
+          <span><strong>€6,523</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="VILLA EDUCATIVA MEXICO">VILLA EDUCATIVA MEXICO</span>
+          <span title="VILLA EDUCATIVA MEXICONegocio">VILLA EDUCATIVA MEXICONegocio</span>
+          <span><strong>€8,367</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">12/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="WESTHILL INSTITUTE">WESTHILL INSTITUTE</span>
+          <span title="WESTHILL INSTITUTENegocio">WESTHILL INSTITUTENegocio</span>
+          <span><strong>€6,912</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">15/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="MARIA ESTUARDO">MARIA ESTUARDO</span>
+          <span title="MARIA ESTUARDONegocio">MARIA ESTUARDONegocio</span>
+          <span><strong>€13,349</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">19/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="SANTA FE">SANTA FE</span>
+          <span title="SANTA FENegocio">SANTA FENegocio</span>
+          <span><strong>€11,330</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">17/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="CULTURA Y PATRIA">CULTURA Y PATRIA</span>
+          <span title="CULTURA Y PATRIANegocio">CULTURA Y PATRIANegocio</span>
+          <span><strong>€22,140</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">05/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="JOSE MARIA LICEAGA">JOSE MARIA LICEAGA</span>
+          <span title="JOSE MARIA LICEAGANegocio">JOSE MARIA LICEAGANegocio</span>
+          <span><strong>€26,163</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">25/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="OR HAJAYIM JACOBO Y YOSI COJAB">OR HAJAYIM JACOBO Y YOSI COJAB</span>
+          <span title="OR HAJAYIM JACOBO Y YOSI COJABNegocio">OR HAJAYIM JACOBO Y YOSI COJABNegocio</span>
+          <span><strong>€7,605</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">11/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="HUMANISTA JUANA DE ASBAJE">HUMANISTA JUANA DE ASBAJE</span>
+          <span title="HUMANISTA JUANA DE ASBAJE Campus Neza Negocio">HUMANISTA JUANA DE ASBAJE Campus Neza Ne…</span>
+          <span><strong>€52,116</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">19/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="HUMANISTA JUANA DE ASBAJE">HUMANISTA JUANA DE ASBAJE</span>
+          <span title="HUMANISTA JUANA DE ASBAJE Campus Lerma Negocio">HUMANISTA JUANA DE ASBAJE Campus Lerma N…</span>
+          <span><strong>€16,605</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">19/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Kinder Reina María">Kinder Reina María</span>
+          <span title="Kinder Reina María">Kinder Reina María</span>
+          <span><strong>€7,907</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">04/03/2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Omar_Sanchez')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">#5</span>
+          <span class="semaforo">🟡</span>
+          <div>
+            <div class="detail-name">Omar Sanchez</div>
+            <div class="detail-stats">Firmados: €15,256 &nbsp;·&nbsp; Cartas: €213,493 &nbsp;·&nbsp; Total: €228,749 / €450,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-yellow">50.8%</span>
+          <span class="detail-arrow" id="arrow_Omar_Sanchez">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Omar_Sanchez">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="BELFORTT">BELFORTT</span>
+          <span title="BELFORTT Negocio">BELFORTT Negocio</span>
+          <span><strong>€25,488</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="BALUARTE DE METEPEC">BALUARTE DE METEPEC</span>
+          <span title="BALUARTE DE METEPEC Negocio">BALUARTE DE METEPEC Negocio</span>
+          <span><strong>€32,093</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">31/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="CULTURAL MEXICO-ARAGON">CULTURAL MEXICO-ARAGON</span>
+          <span title="CULTURAL MEXICO-ARAGON Negocio">CULTURAL MEXICO-ARAGON Negocio</span>
+          <span><strong>€14,837</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="INSTITUTO GALGANI">INSTITUTO GALGANI</span>
+          <span title="GALGANI Negocio">GALGANI Negocio</span>
+          <span><strong>€7,163</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">11/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Instituto Bilingüe Integral Benemérito de las Américas">Instituto Bilingüe Integral Be…</span>
+          <span title="Instituto Bilingüe Integral Benemérito de las AméricasNegocio">Instituto Bilingüe Integral Benemérito d…</span>
+          <span><strong>€16,581</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">17/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="CENTRO ESCOLAR MEXIQUENSE">CENTRO ESCOLAR MEXIQUENSE</span>
+          <span title="CENTRO ESCOLAR MEXIQUENSENegocio">CENTRO ESCOLAR MEXIQUENSENegocio</span>
+          <span><strong>€11,767</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">18/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="COLEGIO JEROME BRUNER">COLEGIO JEROME BRUNER</span>
+          <span title="COLEGIO JEROME BRUNERNegocio">COLEGIO JEROME BRUNERNegocio</span>
+          <span><strong>€2,763</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="JUANA DE ARCO">JUANA DE ARCO</span>
+          <span title="JUANA DE ARCONegocio">JUANA DE ARCONegocio</span>
+          <span><strong>€32,628</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="ATENCION EDUCATIVA JACQUES DELORS">ATENCION EDUCATIVA JACQUES DEL…</span>
+          <span title="ATENCION EDUCATIVA JACQUES DELORSNegocio">ATENCION EDUCATIVA JACQUES DELORSNegocio</span>
+          <span><strong>€13,953</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="JUANA DE ASBAJE">JUANA DE ASBAJE</span>
+          <span title="JUANA DE ASBAJENegocio">JUANA DE ASBAJENegocio</span>
+          <span><strong>€3,321</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="BRIMON">BRIMON</span>
+          <span title="BRIMONNegocio">BRIMONNegocio</span>
+          <span><strong>€8,698</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">19/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="CRISTOBAL COLON MICH">CRISTOBAL COLON MICH</span>
+          <span title="CRISTOBAL COLONNegocio">CRISTOBAL COLONNegocio</span>
+          <span><strong>€25,581</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="ISAAC NEWTON">ISAAC NEWTON</span>
+          <span title="ISAAC NEWTONNegocio">ISAAC NEWTONNegocio</span>
+          <span><strong>€7,828</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Preescolar Covadonga">Preescolar Covadonga</span>
+          <span title="Preescolar CovadongaNegocio">Preescolar CovadongaNegocio</span>
+          <span><strong>€3,488</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">10/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="PEDAGOGICO ARCE">PEDAGOGICO ARCE</span>
+          <span title="PEDAGOGICO ARCENegocio">PEDAGOGICO ARCENegocio</span>
+          <span><strong>€22,558</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">25/03/2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Andres_Reyes')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">#6</span>
+          <span class="semaforo">🔴</span>
+          <div>
+            <div class="detail-name">Andres Reyes</div>
+            <div class="detail-stats">Firmados: €23,507 &nbsp;·&nbsp; Cartas: €156,095 &nbsp;·&nbsp; Total: €179,602 / €550,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-red">32.7%</span>
+          <span class="detail-arrow" id="arrow_Andres_Reyes">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Andres_Reyes">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="THOMAS WOODROW WILSON">THOMAS WOODROW WILSON</span>
+          <span title="THOMAS WOODROW WILSON Negocio">THOMAS WOODROW WILSON Negocio</span>
+          <span><strong>€1,860</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="TLAMATINI">TLAMATINI</span>
+          <span title="TLAMATINI Negocio">TLAMATINI Negocio</span>
+          <span><strong>€4,860</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="PEDAGOGICA DE LAS AMERICAS">PEDAGOGICA DE LAS AMERICAS</span>
+          <span title="PEDAGOGICO AMERICAS Negocio">PEDAGOGICO AMERICAS Negocio</span>
+          <span><strong>€25,791</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Colegio Jiutepequense Wiliam Shakespeare">Colegio Jiutepequense Wiliam S…</span>
+          <span title="Colegio Jiutepequense Wiliam Shakespeare Negocio">Colegio Jiutepequense Wiliam Shakespeare…</span>
+          <span><strong>€14,070</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/10/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="Tesoro del Saber">Tesoro del Saber</span>
+          <span title="Tesoro del SaberNegocio">Tesoro del SaberNegocio</span>
+          <span><strong>€3,279</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="MI NACION">MI NACION</span>
+          <span title="MI NACIONNegocio">MI NACIONNegocio</span>
+          <span><strong>€6,158</strong></span>
+          <span><span class="tag tag-closed">Contrato</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="MOTOLINIA CENTRO ESCOLAR DOLORES ECHEVERRIA ESPARZA">MOTOLINIA CENTRO ESCOLAR DOLOR…</span>
+          <span title="MOTOLINIA CENTRO ESCOLAR DOLORES ECHEVERRIA ESPARZANegocio">MOTOLINIA CENTRO ESCOLAR DOLORES ECHEVER…</span>
+          <span><strong>€19,119</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="CULTURAL FRAY JUNIPERO SERRA">CULTURAL FRAY JUNIPERO SERRA</span>
+          <span title="CULTURAL FRAY JUNIPERO SERRANegocio">CULTURAL FRAY JUNIPERO SERRANegocio</span>
+          <span><strong>€46,884</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="MIGUEL ALEMAN">MIGUEL ALEMAN</span>
+          <span title="MIGUEL ALEMANNegocio">MIGUEL ALEMANNegocio</span>
+          <span><strong>€9,209</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">17/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="HAYDEN">HAYDEN</span>
+          <span title="HAYDENNegocio">HAYDENNegocio</span>
+          <span><strong>€28,605</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">25/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="SARA ALARCON">SARA ALARCON</span>
+          <span title="SARA ALARCONNegocio">SARA ALARCONNegocio</span>
+          <span><strong>€19,767</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Alfonso_Reyes')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">#7</span>
+          <span class="semaforo">🔴</span>
+          <div>
+            <div class="detail-name">Alfonso Reyes</div>
+            <div class="detail-stats">Firmados: €0 &nbsp;·&nbsp; Cartas: €166,253 &nbsp;·&nbsp; Total: €166,253 / €550,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-red">30.2%</span>
+          <span class="detail-arrow" id="arrow_Alfonso_Reyes">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Alfonso_Reyes">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="JUAN MIRALLES OSTOS">JUAN MIRALLES OSTOS</span>
+          <span title="JUAN MIRALLES OSTOS Negocio">JUAN MIRALLES OSTOS Negocio</span>
+          <span><strong>€7,105</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="JUAN LUIS VIVES">JUAN LUIS VIVES</span>
+          <span title="JUAN LUIS VIVESNegocio">JUAN LUIS VIVESNegocio</span>
+          <span><strong>€21,616</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">15/12/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="AHOME">AHOME</span>
+          <span title="AHOMENegocio">AHOMENegocio</span>
+          <span><strong>€25,312</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="MARTIN VAN BUREN">MARTIN VAN BUREN</span>
+          <span title="MARTIN VAN BURENNegocio">MARTIN VAN BURENNegocio</span>
+          <span><strong>€15,988</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">01/11/2025</span>
+        </div>
+        <div class="deal-row">
+          <span title="REX MARINA MAZATLAN">REX MARINA MAZATLAN</span>
+          <span title="REX MARINA MAZATLANNegocio">REX MARINA MAZATLANNegocio</span>
+          <span><strong>€25,619</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="DE MUJERES DE LA CIUDAD DE LOS NIÑOS DE MONTERREY">DE MUJERES DE LA CIUDAD DE LOS…</span>
+          <span title="DE MUJERES DE LA CIUDAD DE LOS NIÑOS DE MONTERREYNegocio">DE MUJERES DE LA CIUDAD DE LOS NIÑOS DE …</span>
+          <span><strong>€6,512</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="ACADEMIA JUAREZ">ACADEMIA JUAREZ</span>
+          <span title="ACADEMIA JUAREZNegocio">ACADEMIA JUAREZNegocio</span>
+          <span><strong>€27,896</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="BILINGUE MEXICO AMERICANO">BILINGUE MEXICO AMERICANO</span>
+          <span title="BILINGUE MEXICO AMERICANONegocio">BILINGUE MEXICO AMERICANONegocio</span>
+          <span><strong>€15,741</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="DE VALLE ARIZPE">DE VALLE ARIZPE</span>
+          <span title="DE VALLE ARIZPENegocio">DE VALLE ARIZPENegocio</span>
+          <span><strong>€20,465</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Jorge_Fuentes')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">#8</span>
+          <span class="semaforo">🔴</span>
+          <div>
+            <div class="detail-name">Jorge Fuentes</div>
+            <div class="detail-stats">Firmados: €0 &nbsp;·&nbsp; Cartas: €114,373 &nbsp;·&nbsp; Total: €114,373 / €300,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-red">38.1%</span>
+          <span class="detail-arrow" id="arrow_Jorge_Fuentes">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Jorge_Fuentes">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="XAIL">XAIL</span>
+          <span title="XAILNegocio">XAILNegocio</span>
+          <span><strong>€15,279</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">25/03/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="MEXICO">MEXICO</span>
+          <span title="MEXICONegocio">MEXICONegocio</span>
+          <span><strong>€22,121</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">30/01/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="VASCO DE QUIROGA">VASCO DE QUIROGA</span>
+          <span title="VASCO DE QUIROGANegocio">VASCO DE QUIROGANegocio</span>
+          <span><strong>€65,721</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/02/2026</span>
+        </div>
+        <div class="deal-row">
+          <span title="Y CULTURAL DEL ISTMO">Y CULTURAL DEL ISTMO</span>
+          <span title="Y CULTURAL DEL ISTMONegocio">Y CULTURAL DEL ISTMONegocio</span>
+          <span><strong>€11,252</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">27/03/2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-vendor">
+      <div class="detail-header" onclick="toggleDetail('Sergio_Arenas')">
+        <div class="detail-header-left">
+          <span style="font-size:1.1rem">#9</span>
+          <span class="semaforo">🔴</span>
+          <div>
+            <div class="detail-name">Sergio Arenas</div>
+            <div class="detail-stats">Firmados: €0 &nbsp;·&nbsp; Cartas: €53,023 &nbsp;·&nbsp; Total: €53,023 / €300,000</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="pct-badge pct-red">17.7%</span>
+          <span class="detail-arrow" id="arrow_Sergio_Arenas">▼</span>
+        </div>
+      </div>
+      <div class="detail-body" id="body_Sergio_Arenas">
+        <div class="deal-row header">
+          <span>Cuenta</span><span>Oportunidad</span><span>Valor</span><span>Tipo</span><span>Fecha Carta</span>
+        </div>
+        <div class="deal-row">
+          <span title="LUTHER KING">LUTHER KING</span>
+          <span title="LUTHER KINGNegocio">LUTHER KINGNegocio</span>
+          <span><strong>€53,023</strong></span>
+          <span><span class="tag tag-carta">Carta Intención</span></span>
+          <span style="color:#94a3b8;font-size:0.73rem">09/02/2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = [{"nombre": "Marcos Gutiérrez", "carta": 495653.96, "closed": 19790.7, "total": 515444.66, "quota": 550000, "pct": 93.7, "semaforo": "🟢", "deals": [{"account": "MARIA P. DE ALVARADO", "opp": "IMPA Negocio", "valor": 27088.37, "closed": false, "carta": true, "fecha": "26/03/2026"}, {"account": "NUEVA ESPAÑA", "opp": "NUEVA ESPAÑA Negocio", "valor": 29418.6, "closed": false, "carta": true, "fecha": "28/11/2025"}, {"account": "CALMECAC", "opp": "CALMECAC Negocio", "valor": 27627.91, "closed": false, "carta": true, "fecha": "31/10/2025"}, {"account": "LIBERTAD", "opp": "LIBERTAD Negocio", "valor": 23162.79, "closed": false, "carta": true, "fecha": "11/12/2025"}, {"account": "DEL VALLE DE TESISTAN", "opp": "DEL VALLE DE TESISTAN Negocio", "valor": 24837.21, "closed": false, "carta": true, "fecha": "27/11/2025"}, {"account": "WAIKARIPA", "opp": "WAIKARIPA Negocio", "valor": 5627.91, "closed": false, "carta": true, "fecha": "16/12/2025"}, {"account": "Summit School (CENTRO DE EDUCATIVO SUSTENTABLE JACQUES COUSTEAU)", "opp": "Summit School", "valor": 32565.58, "closed": false, "carta": true, "fecha": "17/12/2025"}, {"account": "MAXIMILIANO MARIA KOLBE", "opp": "MAXIMILIANO MARIA KOLBE Negocio", "valor": 26255.81, "closed": false, "carta": true, "fecha": "11/12/2025"}, {"account": "COLEGIO JUANA DE ARCO (PRIMARIA Y SECUNDARIA)", "opp": "COLEGIO JUANA DE ARCO (SECUNDARIA)Negocio", "valor": 49953.49, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "COLEGIO PRIMERO DE MAYO", "opp": "PRIMERO DE MAYONegocio", "valor": 54697.67, "closed": false, "carta": true, "fecha": "28/01/2026"}, {"account": "JEAN PIAGET", "opp": "JEAN PIAGETNegocio", "valor": 9181.4, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "JUAN SEBASTIAN BACH", "opp": "JUAN SEBASTIAN BACH NEGOCIO", "valor": 13423.26, "closed": false, "carta": true, "fecha": "17/12/2025"}, {"account": "Europeo de América", "opp": "Europeo de AméricaNegocio", "valor": 6395.35, "closed": true, "carta": false, "fecha": "02/01/2026"}, {"account": "JAIME TORRES BODET (ISPAC)", "opp": "JAIME TORRES BODETNegocio", "valor": 2539.53, "closed": false, "carta": true, "fecha": "17/03/2026"}, {"account": "CERVANTES", "opp": "CERVANTESNegocio", "valor": 26046.51, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "NELSON MANDELA", "opp": "Nelson Mandela", "valor": 13395.35, "closed": true, "carta": false, "fecha": "23/01/2026"}, {"account": "BOSQUES DEL SOL", "opp": "BOSQUES DEL SOLNegocio", "valor": 27906.98, "closed": false, "carta": true, "fecha": "06/03/2026"}, {"account": "AUGUS FROEBEL", "opp": "AUGUS FROEBELNegocio", "valor": 33860.47, "closed": false, "carta": true, "fecha": "05/02/2026"}, {"account": "CENTRO ESCOLAR NUEVA INGLATERRA", "opp": "CENTRO ESCOLAR NUEVA INGLATERRANegocio", "valor": 7441.86, "closed": false, "carta": true, "fecha": "13/02/2026"}, {"account": "IYARI SCHOOL", "opp": "IYARINegocio", "valor": 12279.07, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "HISPANO AMERICANO", "opp": "HISPANO AMERICANONegocio", "valor": 16744.19, "closed": false, "carta": true, "fecha": "23/03/2026"}, {"account": "OCEANO", "opp": "OCEANONegocio", "valor": 24646.51, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "SOR JUANA INES DE LA CRUZ", "opp": "SOR JUANA INES DE LA CRUZNegocio", "valor": 20348.84, "closed": false, "carta": true, "fecha": "27/10/2025"}]}, {"nombre": "Luis Dominguez", "carta": 214477.41, "closed": 228759.77, "total": 443237.18, "quota": 550000, "pct": 80.6, "semaforo": "🟢", "deals": [{"account": "PATRIA DE LA LAGUNA", "opp": "Instituto Patria de la Laguna Torreón", "valor": 62194.88, "closed": true, "carta": false, "fecha": "20/11/2025"}, {"account": "Colegio Pillicao Jiutepec", "opp": "COLEGIO PILLICAO JIUTEPEC", "valor": 3906.98, "closed": true, "carta": false, "fecha": "28/11/2025"}, {"account": "Colegio Latinoamericana Veracruz", "opp": "COLEGIO LATINOAMERICANA VERACRUZ", "valor": 15069.77, "closed": false, "carta": true, "fecha": "20/11/2025"}, {"account": "CEA Centro Escolar Albatros Tuxpan", "opp": "CEA CENTRO ESCOLAR ALBATROS TUXPAN", "valor": 14232.56, "closed": true, "carta": false, "fecha": "21/11/2025"}, {"account": "TERRANOVA", "opp": "Instituto Terra Nova Veracruz", "valor": 7809.07, "closed": true, "carta": false, "fecha": "23/10/2025"}, {"account": "YOLIZTLI DE CHOLULA", "opp": "Escuela Yoliztli de Cholula Puebla", "valor": 19665.12, "closed": true, "carta": false, "fecha": "25/12/2025"}, {"account": "Escuela Morelos Xalapa", "opp": "ESCUELA MORELOS XALAPA", "valor": 50279.07, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "Instituto Anglo de Orizaba", "opp": "INSTITUTO ANGLO DE ORIZABA", "valor": 24186.05, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "Instituto Mariano Benavente Veracruz", "opp": "Instituto Mariano Benavente Veracruz", "valor": 34046.51, "closed": true, "carta": false, "fecha": "19/11/2025"}, {"account": "Colegio Bilingüe de la Veracruz", "opp": "COLEGIO BILINGÜE DE LA VERACRUZ", "valor": 28369.77, "closed": true, "carta": false, "fecha": "01/11/2025"}, {"account": "Colegio Liceo Sol de Oriente Puebla", "opp": "COLEGIO LICEO SOL DE ORIENTE PUEBLA", "valor": 57116.28, "closed": true, "carta": false, "fecha": "01/12/2025"}, {"account": "Colegio Unión Naciones Veracruz", "opp": "COLEGIO DE LAS NACIONES VERACRUZ", "valor": 1418.6, "closed": true, "carta": false, "fecha": "03/12/2025"}, {"account": "CSJ Curie Stark Joule Enseñanza Integral Puebla", "opp": "CSJ CURIE STARK JOULE ENSEÑANZA INTEGRAL PUEBLA", "valor": 19102.33, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "Gregg School San Andrés Tuxtla", "opp": "GREGG SCHOOL SAN ANDRÉS TUXTLA", "valor": 32691.35, "closed": false, "carta": true, "fecha": "21/01/2026"}, {"account": "Curie Stark Joule", "opp": "Curie Stark Joule negocio", "valor": 19102.33, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "Colegio Patria Cosamaloapan", "opp": "COLEGIO PATRIA COSAMALOAPAN", "valor": 29441.86, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "Colegio Bruner ORIZABA", "opp": "COLEGIO BRUNER ORIZABA", "valor": 9767.44, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "San Pedro School Puebla", "opp": "SAN PEDRO SCHOOL PUEBLA", "valor": 14837.21, "closed": false, "carta": true, "fecha": "25/03/2026"}]}, {"nombre": "Fernando Carrillo", "carta": 299637.21, "closed": 58362.78, "total": 357999.99, "quota": 550000, "pct": 65.1, "semaforo": "🟡", "deals": [{"account": "PERSA", "opp": "PERSA Negocio", "valor": 35209.3, "closed": false, "carta": true, "fecha": "01/10/2025"}, {"account": "ATENEO", "opp": "ATENEO Negocio", "valor": 21093.02, "closed": false, "carta": true, "fecha": "14/04/2026"}, {"account": "CENTRO DE ESTUDIOS JOSE VASCONCELOS", "opp": "CENTRO DE ESTUDIOS JOSE VASCONCELOS Negocio", "valor": 12093.02, "closed": true, "carta": false, "fecha": "01/10/2025"}, {"account": "CENTRO ESCOLAR LANDAU", "opp": "CENTRO ESCOLAR LANDAU Negocio", "valor": 33965.12, "closed": false, "carta": true, "fecha": "22/12/2025"}, {"account": "COLEGIO UNIVERSIDAD SAN ANGEL", "opp": "COLEGIO UNIVERSIDAD SAN ANGELnegocio", "valor": 16018.6, "closed": true, "carta": false, "fecha": "01/11/2025"}, {"account": "CRISTOBAL COLON", "opp": "Cuerámaro - USAS", "valor": 15209.3, "closed": true, "carta": false, "fecha": "01/11/2025"}, {"account": "LAS AMERICAS", "opp": "LAS AMERICAS ECATEPECnegocio", "valor": 14069.77, "closed": false, "carta": true, "fecha": "20/01/2026"}, {"account": "YOLINSTLI", "opp": "Colegio Yolinstlin Puebla", "valor": 15041.86, "closed": true, "carta": false, "fecha": "14/01/2026"}, {"account": "VASCO DE QUIROGA", "opp": "VASCO DE QUIROGANegocio", "valor": 33488.37, "closed": false, "carta": true, "fecha": "22/01/2026"}, {"account": "EMMA GODOY", "opp": "EMMA GODOYNegocio", "valor": 29116.28, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "JULES PETIET", "opp": "JULES PETIETNegocio", "valor": 35302.33, "closed": false, "carta": true, "fecha": "25/03/2026"}, {"account": "KAROL WOJTYLA", "opp": "KAROL WOJTYLANegocio", "valor": 25583.72, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "FORMACION CREACTIVA", "opp": "FORMACION CREACTIVANegocio", "valor": 14069.77, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "MIGUEL HIDALGO", "opp": "MIGUEL HIDALGO LIBRES Negocio", "valor": 36418.6, "closed": false, "carta": true, "fecha": "14/04/2026"}, {"account": "GUADALUPE", "opp": "GUADALUPENegocio", "valor": 21320.93, "closed": false, "carta": true, "fecha": "14/04/2026"}]}, {"nombre": "Luis Gómez", "carta": 165581.39, "closed": 90881.41, "total": 256462.8, "quota": 350000, "pct": 73.3, "semaforo": "🟡", "deals": [{"account": "NUEVO CONTINENTE", "opp": "NC SCHOOL Negocio", "valor": 47469.77, "closed": true, "carta": false, "fecha": "03/03/2026"}, {"account": "CENTRO PEDAGOGICO DEL NOROESTE", "opp": "CENTRO PEDAGOGICO DEL NOROESTE Negocio", "valor": 25116.28, "closed": true, "carta": false, "fecha": "27/02/2026"}, {"account": "Colegio Notre Dame", "opp": "Colegio Notre Dame Negocio", "valor": 4860.47, "closed": true, "carta": false, "fecha": "01/10/2025"}, {"account": "COLEGIO DEL VALLE DE TULANCINGO", "opp": "Colegio del Valle de TulancingoNegocio", "valor": 6523.26, "closed": true, "carta": false, "fecha": "30/11/2025"}, {"account": "VILLA EDUCATIVA MEXICO", "opp": "VILLA EDUCATIVA MEXICONegocio", "valor": 8367.44, "closed": false, "carta": true, "fecha": "12/03/2026"}, {"account": "WESTHILL INSTITUTE", "opp": "WESTHILL INSTITUTENegocio", "valor": 6911.63, "closed": true, "carta": false, "fecha": "15/01/2026"}, {"account": "MARIA ESTUARDO", "opp": "MARIA ESTUARDONegocio", "valor": 13348.84, "closed": false, "carta": true, "fecha": "19/12/2025"}, {"account": "SANTA FE", "opp": "SANTA FENegocio", "valor": 11330.23, "closed": false, "carta": true, "fecha": "17/03/2026"}, {"account": "CULTURA Y PATRIA", "opp": "CULTURA Y PATRIANegocio", "valor": 22139.53, "closed": false, "carta": true, "fecha": "05/02/2026"}, {"account": "JOSE MARIA LICEAGA", "opp": "JOSE MARIA LICEAGANegocio", "valor": 26162.79, "closed": false, "carta": true, "fecha": "25/02/2026"}, {"account": "OR HAJAYIM JACOBO Y YOSI COJAB", "opp": "OR HAJAYIM JACOBO Y YOSI COJABNegocio", "valor": 7604.65, "closed": false, "carta": true, "fecha": "11/03/2026"}, {"account": "HUMANISTA JUANA DE ASBAJE", "opp": "HUMANISTA JUANA DE ASBAJE Campus Neza Negocio", "valor": 52116.28, "closed": false, "carta": true, "fecha": "19/02/2026"}, {"account": "HUMANISTA JUANA DE ASBAJE", "opp": "HUMANISTA JUANA DE ASBAJE Campus Lerma Negocio", "valor": 16604.65, "closed": false, "carta": true, "fecha": "19/02/2026"}, {"account": "Kinder Reina María", "opp": "Kinder Reina María", "valor": 7906.98, "closed": false, "carta": true, "fecha": "04/03/2026"}]}, {"nombre": "Omar Sanchez", "carta": 213493.03, "closed": 15255.81, "total": 228748.84, "quota": 450000, "pct": 50.8, "semaforo": "🟡", "deals": [{"account": "BELFORTT", "opp": "BELFORTT Negocio", "valor": 25488.37, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "BALUARTE DE METEPEC", "opp": "BALUARTE DE METEPEC Negocio", "valor": 32093.02, "closed": false, "carta": true, "fecha": "31/12/2025"}, {"account": "CULTURAL MEXICO-ARAGON", "opp": "CULTURAL MEXICO-ARAGON Negocio", "valor": 14837.21, "closed": false, "carta": true, "fecha": "30/11/2025"}, {"account": "INSTITUTO GALGANI", "opp": "GALGANI Negocio", "valor": 7162.79, "closed": false, "carta": true, "fecha": "11/02/2026"}, {"account": "Instituto Bilingüe Integral Benemérito de las Américas", "opp": "Instituto Bilingüe Integral Benemérito de las AméricasNegocio", "valor": 16581.4, "closed": false, "carta": true, "fecha": "17/12/2025"}, {"account": "CENTRO ESCOLAR MEXIQUENSE", "opp": "CENTRO ESCOLAR MEXIQUENSENegocio", "valor": 11767.44, "closed": true, "carta": false, "fecha": "18/12/2025"}, {"account": "COLEGIO JEROME BRUNER", "opp": "COLEGIO JEROME BRUNERNegocio", "valor": 2762.79, "closed": false, "carta": true, "fecha": "01/11/2025"}, {"account": "JUANA DE ARCO", "opp": "JUANA DE ARCONegocio", "valor": 32627.91, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "ATENCION EDUCATIVA JACQUES DELORS", "opp": "ATENCION EDUCATIVA JACQUES DELORSNegocio", "valor": 13953.49, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "JUANA DE ASBAJE", "opp": "JUANA DE ASBAJENegocio", "valor": 3320.93, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "BRIMON", "opp": "BRIMONNegocio", "valor": 8697.67, "closed": false, "carta": true, "fecha": "19/03/2026"}, {"account": "CRISTOBAL COLON MICH", "opp": "CRISTOBAL COLONNegocio", "valor": 25581.4, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "ISAAC NEWTON", "opp": "ISAAC NEWTONNegocio", "valor": 7827.91, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "Preescolar Covadonga", "opp": "Preescolar CovadongaNegocio", "valor": 3488.37, "closed": true, "carta": false, "fecha": "10/03/2026"}, {"account": "PEDAGOGICO ARCE", "opp": "PEDAGOGICO ARCENegocio", "valor": 22558.14, "closed": false, "carta": true, "fecha": "25/03/2026"}]}, {"nombre": "Andres Reyes", "carta": 156095.26, "closed": 23506.98, "total": 179602.24, "quota": 550000, "pct": 32.7, "semaforo": "🔴", "deals": [{"account": "THOMAS WOODROW WILSON", "opp": "THOMAS WOODROW WILSON Negocio", "valor": 1860.47, "closed": false, "carta": true, "fecha": "30/12/2025"}, {"account": "TLAMATINI", "opp": "TLAMATINI Negocio", "valor": 4860.47, "closed": false, "carta": true, "fecha": "01/10/2025"}, {"account": "PEDAGOGICA DE LAS AMERICAS", "opp": "PEDAGOGICO AMERICAS Negocio", "valor": 25790.7, "closed": false, "carta": true, "fecha": "01/10/2025"}, {"account": "Colegio Jiutepequense Wiliam Shakespeare", "opp": "Colegio Jiutepequense Wiliam Shakespeare Negocio", "valor": 14069.77, "closed": true, "carta": false, "fecha": "01/10/2025"}, {"account": "Tesoro del Saber", "opp": "Tesoro del SaberNegocio", "valor": 3279.07, "closed": true, "carta": false, "fecha": "01/11/2025"}, {"account": "MI NACION", "opp": "MI NACIONNegocio", "valor": 6158.14, "closed": true, "carta": false, "fecha": "01/12/2025"}, {"account": "MOTOLINIA CENTRO ESCOLAR DOLORES ECHEVERRIA ESPARZA", "opp": "MOTOLINIA CENTRO ESCOLAR DOLORES ECHEVERRIA ESPARZANegocio", "valor": 19118.51, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "CULTURAL FRAY JUNIPERO SERRA", "opp": "CULTURAL FRAY JUNIPERO SERRANegocio", "valor": 46883.72, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "MIGUEL ALEMAN", "opp": "MIGUEL ALEMANNegocio", "valor": 9209.3, "closed": false, "carta": true, "fecha": "17/02/2026"}, {"account": "HAYDEN", "opp": "HAYDENNegocio", "valor": 28604.65, "closed": false, "carta": true, "fecha": "25/02/2026"}, {"account": "SARA ALARCON", "opp": "SARA ALARCONNegocio", "valor": 19767.44, "closed": false, "carta": true, "fecha": "27/03/2026"}]}, {"nombre": "Alfonso Reyes", "carta": 166253.37, "closed": 0.0, "total": 166253.37, "quota": 550000, "pct": 30.2, "semaforo": "🔴", "deals": [{"account": "JUAN MIRALLES OSTOS", "opp": "JUAN MIRALLES OSTOS Negocio", "valor": 7104.65, "closed": false, "carta": true, "fecha": "01/11/2025"}, {"account": "JUAN LUIS VIVES", "opp": "JUAN LUIS VIVESNegocio", "valor": 21616.28, "closed": false, "carta": true, "fecha": "15/12/2025"}, {"account": "AHOME", "opp": "AHOMENegocio", "valor": 25312.21, "closed": false, "carta": true, "fecha": "01/11/2025"}, {"account": "MARTIN VAN BUREN", "opp": "MARTIN VAN BURENNegocio", "valor": 15988.37, "closed": false, "carta": true, "fecha": "01/11/2025"}, {"account": "REX MARINA MAZATLAN", "opp": "REX MARINA MAZATLANNegocio", "valor": 25618.6, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "DE MUJERES DE LA CIUDAD DE LOS NIÑOS DE MONTERREY", "opp": "DE MUJERES DE LA CIUDAD DE LOS NIÑOS DE MONTERREYNegocio", "valor": 6511.63, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "ACADEMIA JUAREZ", "opp": "ACADEMIA JUAREZNegocio", "valor": 27895.81, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "BILINGUE MEXICO AMERICANO", "opp": "BILINGUE MEXICO AMERICANONegocio", "valor": 15740.7, "closed": false, "carta": true, "fecha": "27/03/2026"}, {"account": "DE VALLE ARIZPE", "opp": "DE VALLE ARIZPENegocio", "valor": 20465.12, "closed": false, "carta": true, "fecha": "27/03/2026"}]}, {"nombre": "Jorge Fuentes", "carta": 114372.56, "closed": 0.0, "total": 114372.56, "quota": 300000, "pct": 38.1, "semaforo": "🔴", "deals": [{"account": "XAIL", "opp": "XAILNegocio", "valor": 15279.07, "closed": false, "carta": true, "fecha": "25/03/2026"}, {"account": "MEXICO", "opp": "MEXICONegocio", "valor": 22120.93, "closed": false, "carta": true, "fecha": "30/01/2026"}, {"account": "VASCO DE QUIROGA", "opp": "VASCO DE QUIROGANegocio", "valor": 65720.93, "closed": false, "carta": true, "fecha": "27/02/2026"}, {"account": "Y CULTURAL DEL ISTMO", "opp": "Y CULTURAL DEL ISTMONegocio", "valor": 11251.63, "closed": false, "carta": true, "fecha": "27/03/2026"}]}, {"nombre": "Sergio Arenas", "carta": 53023.26, "closed": 0.0, "total": 53023.26, "quota": 300000, "pct": 17.7, "semaforo": "🔴", "deals": [{"account": "LUTHER KING", "opp": "LUTHER KINGNegocio", "valor": 53023.26, "closed": false, "carta": true, "fecha": "09/02/2026"}]}];
+
+function showTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'graficas') setTimeout(renderCharts, 50);
+}
+
+function toggleDetail(id) {
+  const body = document.getElementById('body_' + id);
+  const arrow = document.getElementById('arrow_' + id);
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+let chartsRendered = false;
+function renderCharts() {
+  if (chartsRendered) return;
+  chartsRendered = true;
+
+  const nombres = DATA.map(d => d.nombre);
+  const closedVals = DATA.map(d => d.closed);
+  const cartaVals = DATA.map(d => d.carta);
+  const quotas = DATA.map(d => d.quota);
+
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: nombres,
+      datasets: [
+        {
+          label: 'Contratos Firmados',
+          data: closedVals,
+          backgroundColor: '#10b981',
+          borderRadius: 4,
+          stack: 'total'
+        },
+        {
+          label: 'Cartas Intención Firmadas',
+          data: cartaVals,
+          backgroundColor: '#f59e0b',
+          borderRadius: 4,
+          stack: 'total'
+        },
+        {
+          label: 'Meta',
+          data: quotas,
+          type: 'line',
+          borderColor: '#6366f1',
+          borderWidth: 2,
+          borderDash: [6,4],
+          pointBackgroundColor: '#6366f1',
+          pointRadius: 4,
+          fill: false,
+          order: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + ctx.dataset.label + ': €' + ctx.parsed.y.toLocaleString('es-MX', {maximumFractionDigits:0})
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { callback: val => '€' + (val/1000).toFixed(0) + 'k' },
+          grid: { color: '#f1f5f9' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  DATA.forEach(v => {
+    const safeId = v.nombre.replace(/ /g,'_')
+      .replace(/ó/g,'o').replace(/é/g,'e').replace(/ú/g,'u').replace(/á/g,'a').replace(/í/g,'i');
+    const remaining = Math.max(0, v.quota - v.total);
+    const canvas = document.getElementById('donut_' + safeId);
+    if (!canvas) return;
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Contratos Firmados', 'Cartas Intención Firmadas', 'Restante'],
+        datasets: [{
+          data: [v.closed, v.carta, remaining],
+          backgroundColor: ['#10b981', '#f59e0b', '#e2e8f0'],
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ' + ctx.label + ': €' + ctx.parsed.toLocaleString('es-MX', {maximumFractionDigits:0})
+            }
+          }
+        },
+        cutout: '65%'
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
